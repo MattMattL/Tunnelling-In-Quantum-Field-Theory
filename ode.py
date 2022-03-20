@@ -144,8 +144,8 @@ def solveForSingleEpsilon():
 	print("-" * 30)
 
 def solveForEpsilonArray():
-	""" Solves the bubble equation for a given range of epsilon and generates
-		and saves a R-epsilon plot. """
+	""" Solves the bubble equation for a given range of epsilon.
+		Also generates and saves an R-versus-epsilon plot. """
 
 	# initialise variables
 	arrR = []
@@ -156,8 +156,8 @@ def solveForEpsilonArray():
 	for epsilon in arrEpsilon:
 		phi0, phi, dPhi = getConvergingPhi(rho, epsilon)
 
-		# "nucleation point if dPhi is max"
-		# Only look the first half of phi to ignore divergent lines (they are computational errors)
+		# "Nucleation point if dPhi is max". Only look the first half of phi to
+		# ignore diverging lines for a large phi as they are computational errors.
 		maxIndex = 0
 
 		for i in range(int(len(dPhi)/2)):
