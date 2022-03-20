@@ -7,7 +7,7 @@
 
 ## gitignore
 
-```.gitignore``` makes all .png files not part of a commit. Add ```shared_``` in front of the filename to be able to stage: ```shared_(FILE NAME).png```.
+```.gitignore``` makes all .png files not part of a commit. Add ```shared_``` in front of the filename to stage: ```shared_(FILE NAME).png```.
 
 ## Clipboard
 
