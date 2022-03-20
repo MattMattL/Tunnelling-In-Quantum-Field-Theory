@@ -2,8 +2,8 @@
 
 ## Files
 
-- Code for a single epsilon is in the ```main``` branch.
-- R-epsilon code is in the ```add-r-versus-epsilon``` branch.
+- ```ode_old.py``` Solve for a single epsilon, plot V-phi, plot phi-rho.
+- ```ode.py``` Solve for a set of epsilon values, plot R-epsilon.
 
 ## Clipboard
 
