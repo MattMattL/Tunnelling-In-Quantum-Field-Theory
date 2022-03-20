@@ -114,7 +114,7 @@ def plotAndSavePhi(x, y, epsilon):
 
 def plotAndSaveR(x, y):
 	plt.clf()
-	plt.plot(x, y, color='red')
+	plt.plot(x, y, color='red', linestyle='', marker='o', markersize=3)
 
 	plt.axis([0, 0.46, 0, 1.2*max(y)])
 	plt.xlabel(r'$\~{\epsilon}$', fontsize=15)
@@ -149,7 +149,7 @@ def solveForEpsilonArray():
 
 	# initialise variables
 	arrR = []
-	arrEpsilon = np.linspace(0.094, 0.38, 37)
+	arrEpsilon = np.linspace(0.094, 0.38, 30)
 	rho = np.linspace(1e-9, 50, 10000)
 
 	# find and save the nucleation point for each epsilon
