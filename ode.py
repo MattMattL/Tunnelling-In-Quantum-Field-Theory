@@ -11,6 +11,10 @@ from scipy.integrate import odeint
 from scipy.optimize import fsolve
 import matplotlib.pylab as plt
 
+# renaming the function 'fsolve' to 'getZeroAround'.
+# Takes a function and an x coord. Returns x0 closest to x such that f(x) = 0.
+def getZeroAround(x, function, epsilon): return fsolve(function, x, epsilon)[0];
+
 def V(phi, epsilon):
 	""" Returns an array of V = V(phi, epsilon) in the range of phi. """
 	return (1.0/8)*(phi**2 - 1)**2 + (epsilon/2)*(phi-1)
@@ -47,8 +51,8 @@ def getConvergingPhi(rho, epsilon):
 		return False
 
 	# set lower & upper bounds for phi0
-	minPhi0 = fsolve(dV_dPhi, -1, epsilon)[0]
-	maxPhi0 = fsolve(dV_dPhi, 0, epsilon)[0]
+	minPhi0 = getZeroAround(-1, dV_dPhi, epsilon)
+	maxPhi0 = getZeroAround(0, dV_dPhi, epsilon)
 	middlePhi0 = (minPhi0 + maxPhi0) / 2
 
 	dPhi0 = 0
@@ -85,9 +89,9 @@ def plotAndSavePotential(epsilon):
 	plt.clf()
 	plt.axhline(y=0, color='black', linewidth=0.5)
 	plt.axvline(x=0, color='black', linewidth=0.5)
-	plt.axvline(x=fsolve(dV_dPhi, -1, epsilon), color='grey', linewidth=0.3, linestyle='--')
-	plt.axvline(x=fsolve(dV_dPhi, 0, epsilon), color='grey', linewidth=0.3, linestyle='--')
-	plt.axvline(x=fsolve(dV_dPhi, 1, epsilon), color='grey', linewidth=0.3, linestyle='--')
+	plt.axvline(x=getZeroAround(-1, dV_dPhi, epsilon), color='grey', linewidth=0.3, linestyle='--')
+	plt.axvline(x=getZeroAround(0, dV_dPhi, epsilon), color='grey', linewidth=0.3, linestyle='--')
+	plt.axvline(x=getZeroAround(1, dV_dPhi, epsilon), color='grey', linewidth=0.3, linestyle='--')
 	plt.plot(x, y, color='red')
 
 	plt.axis([-1.5, 1.5, 1.1*min(y), 1.1*max(y)])
@@ -100,9 +104,9 @@ def plotAndSavePotential(epsilon):
 def plotAndSavePhi(x, y, epsilon):
 	plt.clf()
 	plt.axhline(y=0, color='black', linewidth=0.5)
-	plt.axhline(y=fsolve(dV_dPhi, 1, epsilon), color='grey', linewidth=0.3, linestyle='--')
-	plt.axhline(y=fsolve(dV_dPhi, 0, epsilon), color='grey', linewidth=0.3, linestyle='--')
-	plt.axhline(y=fsolve(dV_dPhi, -1, epsilon), color='grey', linewidth=0.3, linestyle='--')
+	plt.axhline(y=getZeroAround(1, dV_dPhi, epsilon), color='grey', linewidth=0.3, linestyle='--')
+	plt.axhline(y=getZeroAround(0, dV_dPhi, epsilon), color='grey', linewidth=0.3, linestyle='--')
+	plt.axhline(y=getZeroAround(-1, dV_dPhi, epsilon), color='grey', linewidth=0.3, linestyle='--')
 	plt.plot(x, y, color='red')
 
 	plt.axis([0, max(x), -1.5, 1.5])
@@ -128,7 +132,7 @@ def solveForSingleEpsilon():
 		Also generates and saves phi-rho and V-phi plots. """
 
 	# initialise varibles
-	epsilon = 0.38 # works in the range [0.094, 0.38]
+	epsilon = 0.2 # works in the range [0.094, 0.38]
 	rho = np.linspace(1e-9, 50, 10000)
 
 	# solve ODE
@@ -166,6 +170,7 @@ def solveForEpsilonArray():
 
 		arrR.append(rho[maxIndex])
 
+		# print progress because it is slow
 		print("{0:4.0f}%".format( 100 * (epsilon-0.094)/(0.38-0.094) ))
 
 	plotAndSaveR(arrEpsilon, arrR)
