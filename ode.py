@@ -56,10 +56,10 @@ def getConvergingPhi(rho, epsilon):
 	middlePhi0 = (minPhi0 + maxPhi0) / 2
 
 	dPhi0 = 0
-	lastConvergingPhi0 = None
+	dummy = 0
 
 	# odeint() returns [[phi0, dPhi0], [phi1, dPhi1], [phi2, dPhi2] ...]
-	solution = odeint(ddPhi, [middlePhi0, dPhi0], rho, args=(epsilon, 0))
+	solution = odeint(ddPhi, [middlePhi0, dPhi0], rho, args=(epsilon, dummy))
 
 	# binary search for finding phi0
 	for i in range(100):
@@ -68,15 +68,10 @@ def getConvergingPhi(rho, epsilon):
 			minPhi0 = middlePhi0
 
 		elif isPhiOscillatory():
-			lastConvergingPhi0 = middlePhi0
 			maxPhi0 = middlePhi0
 
 		middlePhi0 = (minPhi0 + maxPhi0) / 2
-		solution = odeint(ddPhi, [middlePhi0, dPhi0], rho, args=(epsilon, 0))
-
-	# set phi to the last non-diverging solution if the last choice of phi0 still diverges
-	if isPhiDivergent() and lastConvergingPhi0 is not None:
-		solution = odeint(ddPhi, [lastConvergingPhi0, dPhi0], rho, args=(epsilon, 0))
+		solution = odeint(ddPhi, [middlePhi0, dPhi0], rho, args=(epsilon, dummy))
 
 	# return phi_initial and phi
 	return middlePhi0, solution[:, 0], solution[:, 1]
@@ -171,14 +166,14 @@ def solveForEpsilonArray():
 		arrR.append(rho[maxIndex])
 
 		# print progress because it is slow
-		print("{0:4.0f}%".format( 100 * (epsilon-0.094)/(0.38-0.094) ))
+		print("{0:1.0f}%".format( 100 * (epsilon-0.094)/(0.38-0.094) ))
 
 	plotAndSaveR(arrEpsilon, arrR)
 
 
 def main():
-	# solveForSingleEpsilon()
-	solveForEpsilonArray()
+	solveForSingleEpsilon()
+	# solveForEpsilonArray()
 
 if __name__ == "__main__":
 	main()
