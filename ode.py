@@ -7,10 +7,12 @@ All mathematical variables used are the "tilde-variables"
 
 import os
 import numpy as np
+import matplotlib.pylab as plt
+from math import pi
 from scipy.integrate import odeint
 from scipy.optimize import fsolve
 from scipy.signal import argrelextrema
-import matplotlib.pylab as plt
+
 
 # renaming the function 'fsolve' to 'getZeroAround' for clarity.
 # Takes a function and an x coordinate, returns x0 closest to x such that f(x0) = 0.
@@ -29,9 +31,7 @@ def ddPhi(initialConditions, rho, epsilon, potentialShift):
 	phi = initialConditions[0]
 	dPhi = initialConditions[1]
 	ddPhi = -(3/rho) * dPhi + dV_dPhi(phi, epsilon)
-	dB = (1/2)*(dPhi**2) + (1/8)*(phi**2 - 1)**2 + (epsilon/2)*(phi - 1) + potentialShift
-
-	print("{:10.6f}, {:10.6f}, {:10.6f}, {:10.6f}, {:10.6f}". format(dB, (1/2)*(dPhi**2), (1/8)*(phi**2 - 1)**2, (epsilon/2)*(phi - 1), potentialShift))
+	dB = 2*(pi**2) * (rho**3) * ((1/2)*(dPhi**2) + (1/8)*(phi**2 - 1)**2 + (epsilon/2)*(phi - 1) + potentialShift)
 	
 	return dPhi, ddPhi, dB
 
@@ -81,7 +81,7 @@ def getConvergingPhi(rho, epsilon):
 		middlePhi0 = (minPhi0 + maxPhi0) / 2
 		solution = odeint(ddPhi, [middlePhi0, 0, 0], rho, args=(epsilon, potentialShift))
 
-		print("\n\n\n\n\n")
+		# print("\n\n\n\n\n")
 
 	# return phi0, phi, dPhi and B
 	return middlePhi0, solution[:, 0], solution[:, 1], solution[:, 2]
@@ -149,9 +149,13 @@ def plotAndSaveR(x, y):
 	plt.clf()
 	plt.plot(x, y, color='red', linestyle='', marker='o', markersize=3)
 
-	plt.axis([0, 0.46, 0, 1.2*max(y)])
+	# plt.axis([0, 0.46, 0, 1.2*max(y)])
 	plt.xlabel(r'$\~{\epsilon}$', fontsize=15)
 	plt.ylabel(r'$R$', fontsize=15)
+
+	x = np.linspace(0.05, 0.38, 100)
+	y = 2 / x
+	plt.plot(x, y, color='red', linestyle='-')
 
 	plt.savefig('r_vs_epsilon.png', format='png', dpi=350)
 
@@ -166,17 +170,21 @@ def plotAndSaveB(x, y):
 	plt.ylabel(r'$B$', fontsize=15)
 
 	plt.savefig('b_vs_x.png', format='png', dpi=350)
-
+	
 def plotAndSaveBX(x, y):
 	plt.clf()
 	plt.axhline(y=0, color='black', linewidth=0.5)
 	plt.plot(x, y, color='red', linestyle='', marker='o', markersize=3)
 
-	plt.axis([0, 0.46, 1.2*min(y), 1.2*max(y)])
+	# plt.axis([0, 0.46, , 1.2*max(y)])
 	plt.xlabel(r'$\~{\epsilon}$', fontsize=15)
-	plt.ylabel(r'$B$', fontsize=15)
+	plt.ylabel(r'$B/\lambda$', fontsize=15)
 
-	plt.savefig('b_vs_x.png', format='png', dpi=350)
+	x = np.linspace(0.05, 0.38, 100)
+	y = 27 * (pi**2) * (2/3)**4 / (2 * x**3)
+	plt.plot(x, y, color='red', linestyle='-')
+
+	plt.savefig('b_vs_epsilon.png', format='png', dpi=350)
 
 
 def solveForSingleEpsilon():
@@ -207,7 +215,7 @@ def solveForEpsilonArray():
 	# initialise variables
 	arrR = []
 	arrB = []
-	arrEpsilon = np.linspace(0.094, 0.38, 10)
+	arrEpsilon = np.linspace(0.094, 0.38, 30)
 	rho = np.linspace(1e-9, 50, 10000)
 
 	# find and save the nucleation point for each epsilon
@@ -234,10 +242,8 @@ def solveForEpsilonArray():
 
 
 def main():
-	solveForSingleEpsilon()
-	# solveForEpsilonArray()
-
-	# getConvergingB(np.linspace(0, 9, 10), np.random.randint(10, size=(10)))
+	# solveForSingleEpsilon()
+	solveForEpsilonArray()
 
 if __name__ == "__main__":
 	main()
