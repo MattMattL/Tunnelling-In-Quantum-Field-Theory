@@ -9,27 +9,31 @@ import os
 import numpy as np
 from scipy.integrate import odeint
 from scipy.optimize import fsolve
+from scipy.signal import argrelextrema
 import matplotlib.pylab as plt
 
-# renaming the function 'fsolve' to 'getZeroAround'.
-# Takes a function and an x coord. Returns x0 closest to x such that f(x) = 0.
+# renaming the function 'fsolve' to 'getZeroAround' for clarity.
+# Takes a function and an x coordinate, returns x0 closest to x such that f(x0) = 0.
 def getZeroAround(x, function, epsilon): return fsolve(function, x, epsilon)[0];
 
 def V(phi, epsilon):
 	""" Returns an array of V = V(phi, epsilon) in the range of phi. """
-	return (1.0/8)*(phi**2 - 1)**2 + (epsilon/2)*(phi-1)
+	return (1/8)*(phi**2 - 1)**2 + (epsilon/2)*(phi - 1)
 
 def dV_dPhi(phi, epsilon):
 	""" Returns dV/dPhi in the range of phi. """
 	return (phi**3 - phi + epsilon) / 2
 
-def ddPhi(initialConditions, rho, epsilon, dummy):
+def ddPhi(initialConditions, rho, epsilon, potentialShift):
 	""" Returns phi'' in the range of rho. """
 	phi = initialConditions[0]
 	dPhi = initialConditions[1]
 	ddPhi = -(3/rho) * dPhi + dV_dPhi(phi, epsilon)
+	dB = (1/2)*(dPhi**2) + (1/8)*(phi**2 - 1)**2 + (epsilon/2)*(phi - 1) + potentialShift
+
+	print("{:10.6f}, {:10.6f}, {:10.6f}, {:10.6f}, {:10.6f}". format(dB, (1/2)*(dPhi**2), (1/8)*(phi**2 - 1)**2, (epsilon/2)*(phi - 1), potentialShift))
 	
-	return dPhi, ddPhi
+	return dPhi, ddPhi, dB
 
 
 def getConvergingPhi(rho, epsilon):
@@ -50,16 +54,20 @@ def getConvergingPhi(rho, epsilon):
 
 		return False
 
-	# set lower & upper bounds for phi0
+	# set lower & upper bounds of phi0
 	minPhi0 = getZeroAround(-1, dV_dPhi, epsilon)
 	maxPhi0 = getZeroAround(0, dV_dPhi, epsilon)
 	middlePhi0 = (minPhi0 + maxPhi0) / 2
 
-	dPhi0 = 0
-	dummy = 0
+	# calculate potential shift to make V(phi-) = 0
+	falseVacuumIndex = argrelextrema(V(rho, epsilon), np.less)[0][0]
+	potentialShift = -1 * V(rho, epsilon)[falseVacuumIndex]
 
-	# odeint() returns [[phi0, dPhi0], [phi1, dPhi1], [phi2, dPhi2] ...]
-	solution = odeint(ddPhi, [middlePhi0, dPhi0], rho, args=(epsilon, dummy))
+	# print(argrelextrema(V(rho, epsilon), np.less))
+	# print(potentialShift)
+
+	# odeint returns [[phi0, dPhi0, B0], [phi1, dPhi1, B1], ...]
+	solution = odeint(ddPhi, [middlePhi0, 0, 0], rho, args=(epsilon, potentialShift))
 
 	# binary search for finding phi0
 	for i in range(100):
@@ -71,10 +79,34 @@ def getConvergingPhi(rho, epsilon):
 			maxPhi0 = middlePhi0
 
 		middlePhi0 = (minPhi0 + maxPhi0) / 2
-		solution = odeint(ddPhi, [middlePhi0, dPhi0], rho, args=(epsilon, dummy))
+		solution = odeint(ddPhi, [middlePhi0, 0, 0], rho, args=(epsilon, potentialShift))
 
-	# return phi_initial and phi
-	return middlePhi0, solution[:, 0], solution[:, 1]
+		print("\n\n\n\n\n")
+
+	# return phi0, phi, dPhi and B
+	return middlePhi0, solution[:, 0], solution[:, 1], solution[:, 2]
+
+def getConvergingB(rho, B):
+	""" Finds and returns a value B converges to by comparing local sum-squared-
+		errors. Based on the assumption that the true converging point would have
+		the smallest SSE around the point.
+
+		The name of this function is misleading since this function 'getConvergingB'
+		does something different to 'getConvergingPhi'. Let me know any better name """
+
+	windowLength = int(len(rho) / 10)
+	arrSSE = [] # array to save sum squared errors
+
+	# slide the window along rho and calculate SSE of B in each window
+	for i in range(len(B) - windowLength + 1):
+		localValues = B[i : i+windowLength]
+		avg = sum(localValues) / windowLength
+
+		sse = np.sum((localValues[:] - avg) ** 2)
+		arrSSE.append(sse)
+
+	# find the index of lowest SSE and return B at that point
+	return B[np.argmin(arrSSE) + int(windowLength/2)]
 
 
 def plotAndSavePotential(epsilon):
@@ -89,12 +121,15 @@ def plotAndSavePotential(epsilon):
 	plt.axvline(x=getZeroAround(1, dV_dPhi, epsilon), color='grey', linewidth=0.3, linestyle='--')
 	plt.plot(x, y, color='red')
 
-	plt.axis([-1.5, 1.5, 1.1*min(y), 1.1*max(y)])
+	rho = np.linspace(1e-9, 50, 10000)
+	falseVacuum = -1 * V(rho, epsilon)[argrelextrema(V(rho, epsilon), np.less)[0][0]]
+	plt.axhline(y=falseVacuum, color='grey', linewidth=0.3, linestyle='--')
+
+	plt.axis([min(x), max(x), min(y), 1.2*max(y)])
 	plt.xlabel(r'$\~{\phi}$', fontsize=15)
 	plt.ylabel(r'$-\~V$', fontsize=15)
 
 	plt.savefig('v_vs_phi.png', format='png', dpi=350)
-	# plt.show()
 
 def plotAndSavePhi(x, y, epsilon):
 	plt.clf()
@@ -109,7 +144,6 @@ def plotAndSavePhi(x, y, epsilon):
 	plt.ylabel(r'$\~{\phi}$', fontsize=15)
 
 	plt.savefig('phi_vs_rho.png', format='png', dpi=350)
-	# plt.show()
 
 def plotAndSaveR(x, y):
 	plt.clf()
@@ -121,21 +155,45 @@ def plotAndSaveR(x, y):
 
 	plt.savefig('r_vs_epsilon.png', format='png', dpi=350)
 
+def plotAndSaveB(x, y):
+	plt.clf()
+	plt.axhline(y=0, color='black', linewidth=0.5)
+	plt.axhline(y=getConvergingB(x, y), color='grey', linewidth=0.3, linestyle='--')
+	plt.plot(x, y, color='red', linestyle='-')
+
+	plt.axis([0, max(x), 1.2*min(y), 1.2*max(y)])
+	plt.xlabel(r'$x$', fontsize=15)
+	plt.ylabel(r'$B$', fontsize=15)
+
+	plt.savefig('b_vs_x.png', format='png', dpi=350)
+
+def plotAndSaveBX(x, y):
+	plt.clf()
+	plt.axhline(y=0, color='black', linewidth=0.5)
+	plt.plot(x, y, color='red', linestyle='', marker='o', markersize=3)
+
+	plt.axis([0, 0.46, 1.2*min(y), 1.2*max(y)])
+	plt.xlabel(r'$\~{\epsilon}$', fontsize=15)
+	plt.ylabel(r'$B$', fontsize=15)
+
+	plt.savefig('b_vs_x.png', format='png', dpi=350)
+
 
 def solveForSingleEpsilon():
 	""" Solves the bubble equation to get phi0 and phi for a given epsilon.
 		Also generates and saves phi-rho and V-phi plots. """
 
 	# initialise varibles
-	epsilon = 0.2 # works in the range [0.094, 0.38]
+	epsilon = 0.3 # works in the range [0.094, 0.38]
 	rho = np.linspace(1e-9, 50, 10000)
 
 	# solve ODE
-	phi0, phi, dPhi = getConvergingPhi(rho, epsilon)
+	phi0, phi, dPhi, B = getConvergingPhi(rho, epsilon)
 
 	# print results
 	plotAndSavePotential(epsilon)
 	plotAndSavePhi(rho, phi, epsilon)
+	plotAndSaveB(rho, B)
 
 	print("-" * 30)
 	print("For epsilon = {0:f}, phi_initial = {1:f}".format(epsilon, phi0))
@@ -148,15 +206,16 @@ def solveForEpsilonArray():
 
 	# initialise variables
 	arrR = []
-	arrEpsilon = np.linspace(0.094, 0.38, 30)
+	arrB = []
+	arrEpsilon = np.linspace(0.094, 0.38, 10)
 	rho = np.linspace(1e-9, 50, 10000)
 
 	# find and save the nucleation point for each epsilon
 	for epsilon in arrEpsilon:
-		phi0, phi, dPhi = getConvergingPhi(rho, epsilon)
+		phi0, phi, dPhi, B = getConvergingPhi(rho, epsilon)
 
-		# "Nucleation point if dPhi is max". Only look the first half of phi to
-		# ignore diverging lines for a large phi as they are computational errors.
+		# Nucleation point if dPhi is max. Only look T the first half of phi to
+		# ignore computational errors, which normally appears in the later half.
 		maxIndex = 0
 
 		for i in range(int(len(dPhi)/2)):
@@ -164,16 +223,21 @@ def solveForEpsilonArray():
 				maxIndex = i
 
 		arrR.append(rho[maxIndex])
+		arrB.append(getConvergingB(rho, B))
 
 		# print progress because it is slow
-		print("{0:1.0f}%".format( 100 * (epsilon-0.094)/(0.38-0.094) ))
+		print("{0:1.0f}%".format(100 * (epsilon-0.094)/(0.38-0.094)))
 
+	# plot R-epsilon and save as a file
 	plotAndSaveR(arrEpsilon, arrR)
+	plotAndSaveBX(arrEpsilon, arrB)
 
 
 def main():
 	solveForSingleEpsilon()
 	# solveForEpsilonArray()
+
+	# getConvergingB(np.linspace(0, 9, 10), np.random.randint(10, size=(10)))
 
 if __name__ == "__main__":
 	main()
