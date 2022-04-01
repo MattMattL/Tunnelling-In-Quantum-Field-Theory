@@ -162,10 +162,10 @@ def plotAndSaveR(x, y):
 def plotAndSaveB(x, y):
 	plt.clf()
 	plt.axhline(y=0, color='black', linewidth=0.5)
-	plt.axhline(y=getConvergingB(x, y), color='grey', linewidth=0.3, linestyle='--')
+	# plt.axhline(y=getConvergingB(x, y), color='grey', linewidth=0.3, linestyle='--')
 	plt.plot(x, y, color='red', linestyle='-')
 
-	plt.axis([0, max(x), 1.2*min(y), 1.2*max(y)])
+	plt.axis([0, max(x), 1.2*min(y), 1.5*getConvergingB(x, y)])
 	plt.xlabel(r'$x$', fontsize=15)
 	plt.ylabel(r'$B$', fontsize=15)
 
@@ -178,11 +178,15 @@ def plotAndSaveBX(x, y):
 
 	# plt.axis([0, 0.46, , 1.2*max(y)])
 	plt.xlabel(r'$\~{\epsilon}$', fontsize=15)
-	plt.ylabel(r'$B/\lambda$', fontsize=15)
+	plt.ylabel(r'$\~{B}$', fontsize=15)
 
-	x = np.linspace(0.05, 0.38, 100)
-	y = 27 * (pi**2) * (2/3)**4 / (2 * x**3)
-	plt.plot(x, y, color='red', linestyle='-')
+	# x = np.linspace(0.05, 0.38, 100)
+	# y = 27 * (pi**2) * (2/3)**4 / (2 * x**3)
+	# plt.plot(x, y, color='red', linestyle='-')
+
+	# x = np.linspace(0.05, 0.38, 100)
+	# y = 27 * (pi**2) * (1/3)**4 / (2 * x**3)
+	# plt.plot(x, y, color='black', linestyle='-')
 
 	plt.savefig('b_vs_epsilon.png', format='png', dpi=350)
 
