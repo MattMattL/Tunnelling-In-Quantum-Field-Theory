@@ -16,7 +16,7 @@ from scipy.signal import argrelextrema
 
 # renaming the function 'fsolve' to 'getZeroAround' for clarity.
 # Takes a function and an x coordinate, returns x0 closest to x such that f(x0) = 0.
-def getZeroAround(x, function, epsilon): return fsolve(function, x, epsilon)[0];
+def getZero(of, around, epsilon): return fsolve(of, around, epsilon)[0];
 
 def V(phi, epsilon):
 	""" Returns an array of V = V(phi, epsilon) in the range of phi. """
@@ -55,8 +55,8 @@ def getConvergingPhi(rho, epsilon):
 		return False
 
 	# set lower & upper bounds of phi0
-	minPhi0 = getZeroAround(-1, dV_dPhi, epsilon)
-	maxPhi0 = getZeroAround(0, dV_dPhi, epsilon)
+	minPhi0 = getZero(of=dV_dPhi, around=-1, epsilon=epsilon)
+	maxPhi0 = getZero(of=dV_dPhi, around=0, epsilon=epsilon)
 	middlePhi0 = (minPhi0 + maxPhi0) / 2
 
 	# calculate potential shift to make V(phi-) = 0
@@ -116,9 +116,9 @@ def plotAndSavePotential(epsilon):
 	plt.clf()
 	plt.axhline(y=0, color='black', linewidth=0.5)
 	plt.axvline(x=0, color='black', linewidth=0.5)
-	plt.axvline(x=getZeroAround(-1, dV_dPhi, epsilon), color='grey', linewidth=0.3, linestyle='--')
-	plt.axvline(x=getZeroAround(0, dV_dPhi, epsilon), color='grey', linewidth=0.3, linestyle='--')
-	plt.axvline(x=getZeroAround(1, dV_dPhi, epsilon), color='grey', linewidth=0.3, linestyle='--')
+	plt.axvline(x=getZero(of=dV_dPhi, around=-1, epsilon=epsilon), color='grey', linewidth=0.3, linestyle='--')
+	plt.axvline(x=getZero(of=dV_dPhi, around=0, epsilon=epsilon), color='grey', linewidth=0.3, linestyle='--')
+	plt.axvline(x=getZero(of=dV_dPhi, around=1, epsilon=epsilon), color='grey', linewidth=0.3, linestyle='--')
 	plt.plot(x, y, color='red')
 
 	rho = np.linspace(1e-9, 50, 10000)
@@ -134,9 +134,9 @@ def plotAndSavePotential(epsilon):
 def plotAndSavePhi(x, y, epsilon):
 	plt.clf()
 	plt.axhline(y=0, color='black', linewidth=0.5)
-	plt.axhline(y=getZeroAround(1, dV_dPhi, epsilon), color='grey', linewidth=0.3, linestyle='--')
-	plt.axhline(y=getZeroAround(0, dV_dPhi, epsilon), color='grey', linewidth=0.3, linestyle='--')
-	plt.axhline(y=getZeroAround(-1, dV_dPhi, epsilon), color='grey', linewidth=0.3, linestyle='--')
+	plt.axhline(y=getZero(of=dV_dPhi, around=1, epsilon=epsilon), color='grey', linewidth=0.3, linestyle='--')
+	plt.axhline(y=getZero(of=dV_dPhi, around=0, epsilon=epsilon), color='grey', linewidth=0.3, linestyle='--')
+	plt.axhline(y=getZero(of=dV_dPhi, around=-1, epsilon=epsilon), color='grey', linewidth=0.3, linestyle='--')
 	plt.plot(x, y, color='red')
 
 	plt.axis([0, max(x), -1.5, 1.5])
@@ -162,7 +162,7 @@ def plotAndSaveR(x, y):
 def plotAndSaveB(x, y):
 	plt.clf()
 	plt.axhline(y=0, color='black', linewidth=0.5)
-	# plt.axhline(y=getConvergingB(x, y), color='grey', linewidth=0.3, linestyle='--')
+	plt.axhline(y=getConvergingB(x, y), color='grey', linewidth=0.3, linestyle='--')
 	plt.plot(x, y, color='red', linestyle='-')
 
 	plt.axis([0, max(x), 1.2*min(y), 1.5*getConvergingB(x, y)])
@@ -219,8 +219,8 @@ def solveForEpsilonArray():
 	# initialise variables
 	arrR = []
 	arrB = []
-	arrEpsilon = np.linspace(0.094, 0.38, 30)
-	rho = np.linspace(1e-9, 50, 10000)
+	arrEpsilon = np.linspace(0.094, 0.38, 10)
+	rho = np.linspace(1e-9, 50, 1000)
 
 	# find and save the nucleation point for each epsilon
 	for epsilon in arrEpsilon:
@@ -246,7 +246,7 @@ def solveForEpsilonArray():
 
 
 def main():
-	# solveForSingleEpsilon()
+	solveForSingleEpsilon()
 	solveForEpsilonArray()
 
 if __name__ == "__main__":
