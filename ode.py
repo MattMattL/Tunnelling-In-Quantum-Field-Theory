@@ -74,7 +74,8 @@ def getConvergingPhi(rho):
 	falseVacuumIndex = argrelextrema(V(rho), np.less)[0][0]
 	potentialShift = -1 * V(rho)[falseVacuumIndex]
 
-	print(argrelextrema(V(rho), np.less))
+	if Settings.ENABLE_DEBUGGING:
+		print(argrelextrema(V(rho), np.less))
 
 	# odeint returns [[phi0, dPhi0, B0], [phi1, dPhi1, B1], ...]
 	solution = odeint(ddPhi, [middlePhi0, 0, 0], rho, args=(potentialShift, 0))
@@ -161,12 +162,15 @@ def plotAndSaveR_Epsilon(x, y):
 	global Settings
 
 	plt.clf()
-	plt.plot(x, y, color=Settings.GRAPH_COLOUR, linestyle='', marker=Settings.MARKER_STYLE, markersize=Settings.MARKER_SIZE)
 
-	lower, upper = Settings.ANALYTIC_R_EPSILON_RANGE
-	x = np.linspace(lower, upper, 200)
-	y = 2 / x
-	plt.plot(x, y, color=Settings.GRAPH_COLOUR, linewidth=Settings.LINE_WIDTH, linestyle='-')
+	if Settings.ENABLE_NUMERICAL_PLOT:
+		plt.plot(x, y, color=Settings.GRAPH_COLOUR, linestyle='', marker=Settings.MARKER_STYLE, markersize=Settings.MARKER_SIZE)
+
+	if Settings.ENABLE_ANALYTIC_PLOT:
+		lower, upper = Settings.ANALYTIC_R_EPSILON_RANGE
+		x = np.linspace(lower, upper, 200)
+		y = 2 / x
+		plt.plot(x, y, color=Settings.GRAPH_COLOUR, linewidth=Settings.LINE_WIDTH, linestyle='-')
 
 	plt.xticks([0.1*n for n in range(10)])
 	plt.xlabel(r'$\~{\epsilon}$', fontsize=15)
@@ -195,13 +199,16 @@ def plotAndSaveB_Epsilon(x, y):
 	global Settings
 
 	plt.clf()
-	plt.axhline(y=0, color='black', linewidth=0.5)
-	plt.plot(x, y, color=Settings.GRAPH_COLOUR, linestyle='', marker=Settings.MARKER_STYLE, markersize=Settings.MARKER_SIZE)
 
-	lower, upper = Settings.ANALYTIC_B_EPSILON_RANGE
-	x = np.linspace(lower, upper, 200)
-	y = 27 * (pi**2) * (2/3)**4 / (2 * x**3)
-	plt.plot(x, y, color=Settings.GRAPH_COLOUR, linewidth=Settings.LINE_WIDTH, linestyle='-')
+	if Settings.ENABLE_NUMERICAL_PLOT:
+		plt.axhline(y=0, color='black', linewidth=0.5)
+		plt.plot(x, y, color=Settings.GRAPH_COLOUR, linestyle='', marker=Settings.MARKER_STYLE, markersize=Settings.MARKER_SIZE)
+
+	if Settings.ENABLE_ANALYTIC_PLOT:
+		lower, upper = Settings.ANALYTIC_B_EPSILON_RANGE
+		x = np.linspace(lower, upper, 200)
+		y = 27 * (pi**2) * (2/3)**4 / (2 * x**3)
+		plt.plot(x, y, color=Settings.GRAPH_COLOUR, linewidth=Settings.LINE_WIDTH, linestyle='-')
 
 	plt.xticks([0.1*n for n in range(10)])
 	plt.xlabel(r'$\~{\epsilon}$', fontsize=15)
@@ -229,12 +236,8 @@ def solveForSingleEpsilon():
 	plotAndSavePhi_Rho(rho, phi)
 	plotAndSaveB_X(rho, B)
 
-	print("-" * 30)
-	print("For epsilon = {0:f}, phi_initial = {1:f}".format(Settings.EPSILON, phi0))
-	print("(figures saved in {0:s})".format(os.getcwd()))
-	print("-" * 30)
-
-	print(Settings.EPSILON)
+	print(" Phi_initial = {:f} for epsilon = {:f}".format(phi0, Settings.EPSILON))
+	print(" (V-phi, phi-rho and B-x saved in {0:s})".format(os.getcwd()))
 
 def solveForEpsilonArray():
 	""" Solves the bubble equation for a given range of epsilon. Also generates
@@ -248,27 +251,30 @@ def solveForEpsilonArray():
 	arrEpsilon = np.linspace(0.094, 0.38, Settings.NUM_EPSILONS)
 	rho = np.linspace(1e-9, 50, Settings.NUM_RHOS)
 
-	# find and save the nucleation point for each epsilon
-	for Settings.EPSILON in arrEpsilon:
-		phi0, phi, dPhi, B = getConvergingPhi(rho)
+	if Settings.ENABLE_NUMERICAL_PLOT:
+		# find and save the nucleation point for each epsilon
+		for Settings.EPSILON in arrEpsilon:
+			phi0, phi, dPhi, B = getConvergingPhi(rho)
 
-		# Nucleation point if dPhi is max. Only look T the first half of phi to
-		# ignore computational errors, which normally appears in the later half.
-		maxIndex = 0
+			# Nucleation point if dPhi is max. Only look T the first half of phi to
+			# ignore computational errors, which normally appears in the later half.
+			maxIndex = 0
 
-		for i in range(int(len(dPhi)/2)):
-			if dPhi[i] > dPhi[maxIndex]:
-				maxIndex = i
+			for i in range(int(len(dPhi)/2)):
+				if dPhi[i] > dPhi[maxIndex]:
+					maxIndex = i
 
-		arrR.append(rho[maxIndex])
-		arrB.append(getConvergingB(rho, B))
+			arrR.append(rho[maxIndex])
+			arrB.append(getConvergingB(rho, B))
 
-		# print progress because it is slow
-		print("{0:1.0f}%".format(100 * (Settings.EPSILON-0.094)/(0.38-0.094)))
+			# print progress because it is slow
+			print("{0:1.0f}%".format(100 * (Settings.EPSILON-0.094)/(0.38-0.094)))
 
 	# plot R-epsilon and save as a file
 	plotAndSaveR_Epsilon(arrEpsilon, arrR)
 	plotAndSaveB_Epsilon(arrEpsilon, arrB)
+
+	print(" (R-epsilon and B-epsilon saved in {0:s})".format(os.getcwd()))
 
 
 class Settings:
@@ -282,7 +288,7 @@ class Settings:
 	# calculation settings
 	EPSILON = 0.2 # works in the range [0.094, 0.380]
 	NUM_RHOS = 10000
-	NUM_EPSILONS = 13
+	NUM_EPSILONS = 30
 
 	# plot settings
 	GRAPH_COLOUR = 'black'
@@ -301,25 +307,32 @@ class Settings:
 	DOTTED_LINE_STYLE = ':'
 	MARKER_STYLE = 'o'
 
+	# other settings
+	ENABLE_DEBUGGING = False
+
 def main():
+	""" """
 	global Settings
+
+	ENABLE_DEBUGGING = True
 
 	# settings for V-Rho and B-X plots:
 	Settings.GRAPH_COLOUR = 'red'
-	Settings.EPSILON = 0.2
-	Settings.NUM_RHOS = 10000
-
-	Settings.ENABLE_ANALYTIC_PLOT = True
-	Settings.ENABLE_NUMERICAL_PLOT = True
+	Settings.EPSILON = 0.1
 
 	solveForSingleEpsilon()
 
 	# settings for R-Epsilon and B-Epsilon plots:
 	Settings.NUM_RHOS = 1000
+	Settings.NUM_EPSILONS = 15
+
+	Settings.ENABLE_ANALYTIC_PLOT = False
+	Settings.ENABLE_NUMERICAL_PLOT = True
 	
 	solveForEpsilonArray()
 
 if __name__ == "__main__":
+	""" """
 	plt.figure(figsize=(0.5*16, 0.5*10))
 	main()
 
