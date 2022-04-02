@@ -1,10 +1,9 @@
 """
-Tunnelling in quantum field theory.
-04 May 2022
 
 All mathematical variables used are the "tilde-variables", e.g., phi-tilde not
 phi.
 
+The user only needs to adjust main() (cf. class::Settings)
 
 """
 
@@ -14,7 +13,7 @@ import matplotlib.pylab as plt
 from math import pi
 from scipy.integrate import odeint
 from scipy.optimize import fsolve
-from scipy.signal import argrelextrema
+from scipy.signal import argrelextrema as findExtrema
 
 
 # renaming the function 'fsolve' to 'getZero' for clarity.
@@ -71,11 +70,11 @@ def getConvergingPhi(rho):
 	middlePhi0 = (minPhi0 + maxPhi0) / 2
 
 	# calculate potential shift to make V(phi-) = 0
-	falseVacuumIndex = argrelextrema(V(rho), np.less)[0][0]
+	falseVacuumIndex = findExtrema(V(rho), np.less)[0][0]
 	potentialShift = -1 * V(rho)[falseVacuumIndex]
 
 	if Settings.ENABLE_DEBUGGING:
-		print(argrelextrema(V(rho), np.less))
+		print(findExtrema(V(rho), np.less))
 
 	# odeint returns [[phi0, dPhi0, B0], [phi1, dPhi1, B1], ...]
 	solution = odeint(ddPhi, [middlePhi0, 0, 0], rho, args=(potentialShift, 0))
@@ -101,7 +100,7 @@ def getConvergingB(rho, B):
 		the smallest SSE around the point.
 
 		The name of this function is misleading since this function 'getConvergingB'
-		does something different to 'getConvergingPhi'. Let me know any better name """
+		does something different to 'getConvergingPhi'. """
 
 	global Settings
 
@@ -192,7 +191,7 @@ def plotAndSaveB_X(x, y):
 	plt.ylabel(r'$B$', fontsize=15)
 	plt.axis([0, max(x), 1.2*min(y), 1.5*getConvergingB(x, y)])
 
-	fileName = 'b_x_' + str(Settings.EPSILON) + '.png'
+	fileName = 'b_x_' + "{:.2f}".format(Settings.EPSILON) + '.png'
 	plt.savefig(fileName, format='png', dpi=350)
 	
 def plotAndSaveB_Epsilon(x, y):
@@ -236,8 +235,8 @@ def solveForSingleEpsilon():
 	plotAndSavePhi_Rho(rho, phi)
 	plotAndSaveB_X(rho, B)
 
-	print(" Phi_initial = {:f} for epsilon = {:f}".format(phi0, Settings.EPSILON))
-	print(" (V-phi, phi-rho and B-x saved in {0:s})".format(os.getcwd()))
+	print("[ode.py] Phi_initial = {:f} for epsilon = {:f}".format(phi0, Settings.EPSILON))
+	print("[ode.py] (V-phi, phi-rho and B-x saved in {0:s})".format(os.getcwd()))
 
 def solveForEpsilonArray():
 	""" Solves the bubble equation for a given range of epsilon. Also generates
@@ -270,11 +269,14 @@ def solveForEpsilonArray():
 			# print progress because it is slow
 			print("{0:1.0f}%".format(100 * (Settings.EPSILON-0.094)/(0.38-0.094)))
 
+			if Settings.ENABLE_DEBUGGING:
+				plotAndSaveB_X(rho, B)
+
 	# plot R-epsilon and save as a file
 	plotAndSaveR_Epsilon(arrEpsilon, arrR)
 	plotAndSaveB_Epsilon(arrEpsilon, arrB)
 
-	print(" (R-epsilon and B-epsilon saved in {0:s})".format(os.getcwd()))
+	print("[ode.py] (R-epsilon and B-epsilon saved in {0:s})".format(os.getcwd()))
 
 
 class Settings:
@@ -316,13 +318,13 @@ def main():
 
 	# settings for V-Rho and B-X plots:
 	Settings.GRAPH_COLOUR = 'red'
-	Settings.EPSILON = 0.2
+	Settings.EPSILON = 0.13
 
-	solveForSingleEpsilon()
+	# solveForSingleEpsilon()
 
 	# settings for R-Epsilon and B-Epsilon plots:
-	Settings.NUM_RHOS = 1000
-	Settings.NUM_EPSILONS = 15
+	Settings.NUM_RHOS = 10000
+	Settings.NUM_EPSILONS = 10
 
 	Settings.ENABLE_ANALYTIC_PLOT = True
 	Settings.ENABLE_NUMERICAL_PLOT = True
