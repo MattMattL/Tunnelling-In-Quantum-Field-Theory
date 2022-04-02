@@ -1,7 +1,10 @@
 """
+Tunnelling in quantum field theory.
+04 May 2022
 
-All mathematical variables used are the "tilde-variables"
-(e.g. V-tilde not V, phi-tilde not phi)
+All mathematical variables used are the "tilde-variables", e.g., phi-tilde not
+phi.
+
 
 """
 
@@ -14,31 +17,39 @@ from scipy.optimize import fsolve
 from scipy.signal import argrelextrema
 
 
-# renaming the function 'fsolve' to 'getZeroAround' for clarity.
+# renaming the function 'fsolve' to 'getZero' for clarity.
 # Takes a function and an x coordinate, returns x0 closest to x such that f(x0) = 0.
-def getZero(of, around, epsilon): return fsolve(of, around, epsilon)[0];
+def getZero(of, around): return fsolve(of, around)[0];
 
-def V(phi, epsilon):
+def V(phi):
 	""" Returns an array of V = V(phi, epsilon) in the range of phi. """
-	return (1/8)*(phi**2 - 1)**2 + (epsilon/2)*(phi - 1)
+	global Settings
 
-def dV_dPhi(phi, epsilon):
+	return (1/8)*(phi**2 - 1)**2 + (Settings.EPSILON/2)*(phi - 1)
+
+def dV_dPhi(phi):
 	""" Returns dV/dPhi in the range of phi. """
-	return (phi**3 - phi + epsilon) / 2
+	global Settings
 
-def ddPhi(initialConditions, rho, epsilon, potentialShift):
+	return (phi**3 - phi + Settings.EPSILON) / 2
+
+def ddPhi(initialConditions, rho, potentialShift, dummy):
 	""" Returns phi'' in the range of rho. """
+	global Settings
+
 	phi = initialConditions[0]
 	dPhi = initialConditions[1]
-	ddPhi = -(3/rho) * dPhi + dV_dPhi(phi, epsilon)
-	dB = 2*(pi**2) * (rho**3) * ((1/2)*(dPhi**2) + (1/8)*(phi**2 - 1)**2 + (epsilon/2)*(phi - 1) + potentialShift)
+	ddPhi = -(3/rho) * dPhi + dV_dPhi(phi)
+	dB = 2*(pi**2) * (rho**3) * ((1/2)*(dPhi**2) + (1/8)*(phi**2 - 1)**2 + (Settings.EPSILON/2)*(phi - 1) + potentialShift)
 	
 	return dPhi, ddPhi, dB
 
 
-def getConvergingPhi(rho, epsilon):
+def getConvergingPhi(rho):
 	""" Determine initial phi that makes phi converge to a local maximum
 		in potential V using binary search and the shooting method """
+
+	global Settings
 
 	def isPhiDivergent():
 		phi = solution[:, 0]
@@ -55,19 +66,18 @@ def getConvergingPhi(rho, epsilon):
 		return False
 
 	# set lower & upper bounds of phi0
-	minPhi0 = getZero(of=dV_dPhi, around=-1, epsilon=epsilon)
-	maxPhi0 = getZero(of=dV_dPhi, around=0, epsilon=epsilon)
+	minPhi0 = getZero(of=dV_dPhi, around=-1)
+	maxPhi0 = getZero(of=dV_dPhi, around=0)
 	middlePhi0 = (minPhi0 + maxPhi0) / 2
 
 	# calculate potential shift to make V(phi-) = 0
-	falseVacuumIndex = argrelextrema(V(rho, epsilon), np.less)[0][0]
-	potentialShift = -1 * V(rho, epsilon)[falseVacuumIndex]
+	falseVacuumIndex = argrelextrema(V(rho), np.less)[0][0]
+	potentialShift = -1 * V(rho)[falseVacuumIndex]
 
-	# print(argrelextrema(V(rho, epsilon), np.less))
-	# print(potentialShift)
+	print(argrelextrema(V(rho), np.less))
 
 	# odeint returns [[phi0, dPhi0, B0], [phi1, dPhi1, B1], ...]
-	solution = odeint(ddPhi, [middlePhi0, 0, 0], rho, args=(epsilon, potentialShift))
+	solution = odeint(ddPhi, [middlePhi0, 0, 0], rho, args=(potentialShift, 0))
 
 	# binary search for finding phi0
 	for i in range(100):
@@ -79,9 +89,7 @@ def getConvergingPhi(rho, epsilon):
 			maxPhi0 = middlePhi0
 
 		middlePhi0 = (minPhi0 + maxPhi0) / 2
-		solution = odeint(ddPhi, [middlePhi0, 0, 0], rho, args=(epsilon, potentialShift))
-
-		# print("\n\n\n\n\n")
+		solution = odeint(ddPhi, [middlePhi0, 0, 0], rho, args=(potentialShift, 0))
 
 	# return phi0, phi, dPhi and B
 	return middlePhi0, solution[:, 0], solution[:, 1], solution[:, 2]
@@ -93,6 +101,8 @@ def getConvergingB(rho, B):
 
 		The name of this function is misleading since this function 'getConvergingB'
 		does something different to 'getConvergingPhi'. Let me know any better name """
+
+	global Settings
 
 	windowLength = int(len(rho) / 10)
 	arrSSE = [] # array to save sum squared errors
@@ -109,122 +119,138 @@ def getConvergingB(rho, B):
 	return B[np.argmin(arrSSE) + int(windowLength/2)]
 
 
-def plotAndSavePotential(epsilon):
+def plotAndSaveV_Phi():
+	global Settings
+
 	x = np.linspace(-1.5, 1.5, 1000)
-	y = -V(x, epsilon)
+	y = -V(x)
 
 	plt.clf()
 	plt.axhline(y=0, color='black', linewidth=0.5)
 	plt.axvline(x=0, color='black', linewidth=0.5)
-	plt.axvline(x=getZero(of=dV_dPhi, around=-1, epsilon=epsilon), color='grey', linewidth=0.3, linestyle='--')
-	plt.axvline(x=getZero(of=dV_dPhi, around=0, epsilon=epsilon), color='grey', linewidth=0.3, linestyle='--')
-	plt.axvline(x=getZero(of=dV_dPhi, around=1, epsilon=epsilon), color='grey', linewidth=0.3, linestyle='--')
-	plt.plot(x, y, color='red')
-
-	rho = np.linspace(1e-9, 50, 10000)
-	falseVacuum = -1 * V(rho, epsilon)[argrelextrema(V(rho, epsilon), np.less)[0][0]]
-	plt.axhline(y=falseVacuum, color='grey', linewidth=0.3, linestyle='--')
+	plt.axvline(x=getZero(of=dV_dPhi, around=-1), color='grey', linewidth=Settings.DOTTED_LINE_WIDTH, linestyle=Settings.DOTTED_LINE_STYLE)
+	plt.axvline(x=getZero(of=dV_dPhi, around=0), color='grey', linewidth=Settings.DOTTED_LINE_WIDTH, linestyle=Settings.DOTTED_LINE_STYLE)
+	plt.axvline(x=getZero(of=dV_dPhi, around=1), color='grey', linewidth=Settings.DOTTED_LINE_WIDTH, linestyle=Settings.DOTTED_LINE_STYLE)
+	plt.plot(x, y, color=Settings.GRAPH_COLOUR, linewidth=Settings.LINE_WIDTH,)
 
 	plt.axis([min(x), max(x), min(y), 1.2*max(y)])
 	plt.xlabel(r'$\~{\phi}$', fontsize=15)
 	plt.ylabel(r'$-\~V$', fontsize=15)
 
-	plt.savefig('v_vs_phi.png', format='png', dpi=350)
+	fileName = 'v_phi_' + str(Settings.EPSILON) + '.png'
+	plt.savefig(fileName, format='png', dpi=350)
 
-def plotAndSavePhi(x, y, epsilon):
+def plotAndSavePhi_Rho(x, y):
+	global Settings
+
 	plt.clf()
 	plt.axhline(y=0, color='black', linewidth=0.5)
-	plt.axhline(y=getZero(of=dV_dPhi, around=1, epsilon=epsilon), color='grey', linewidth=0.3, linestyle='--')
-	plt.axhline(y=getZero(of=dV_dPhi, around=0, epsilon=epsilon), color='grey', linewidth=0.3, linestyle='--')
-	plt.axhline(y=getZero(of=dV_dPhi, around=-1, epsilon=epsilon), color='grey', linewidth=0.3, linestyle='--')
-	plt.plot(x, y, color='red')
+	plt.axhline(y=getZero(of=dV_dPhi, around=1), color='grey', linewidth=Settings.DOTTED_LINE_WIDTH, linestyle=Settings.DOTTED_LINE_STYLE)
+	plt.axhline(y=getZero(of=dV_dPhi, around=0), color='grey', linewidth=Settings.DOTTED_LINE_WIDTH, linestyle=Settings.DOTTED_LINE_STYLE)
+	plt.axhline(y=getZero(of=dV_dPhi, around=-1), color='grey', linewidth=Settings.DOTTED_LINE_WIDTH, linestyle=Settings.DOTTED_LINE_STYLE)
+	plt.plot(x, y, color=Settings.GRAPH_COLOUR, linewidth=Settings.LINE_WIDTH,)
 
 	plt.axis([0, max(x), -1.5, 1.5])
 	plt.xlabel(r'$\~{\rho}$', fontsize=15)
 	plt.ylabel(r'$\~{\phi}$', fontsize=15)
 
-	plt.savefig('phi_vs_rho.png', format='png', dpi=350)
+	fileName = 'phi_rho_' + str(Settings.EPSILON) + '.png'
+	plt.savefig(fileName, format='png', dpi=350)
 
-def plotAndSaveR(x, y):
+def plotAndSaveR_Epsilon(x, y):
+	global Settings
+
 	plt.clf()
-	plt.plot(x, y, color='red', linestyle='', marker='o', markersize=3)
+	plt.plot(x, y, color=Settings.GRAPH_COLOUR, linestyle='', marker=Settings.MARKER_STYLE, markersize=Settings.MARKER_SIZE)
 
-	# plt.axis([0, 0.46, 0, 1.2*max(y)])
+	lower, upper = Settings.ANALYTIC_R_EPSILON_RANGE
+	x = np.linspace(lower, upper, 200)
+	y = 2 / x
+	plt.plot(x, y, color=Settings.GRAPH_COLOUR, linewidth=Settings.LINE_WIDTH, linestyle='-')
+
+	plt.xticks([0.1*n for n in range(10)])
 	plt.xlabel(r'$\~{\epsilon}$', fontsize=15)
 	plt.ylabel(r'$R$', fontsize=15)
+	plt.axis([0, 0.42, 0, 1.1*max(y)])
 
-	x = np.linspace(0.05, 0.38, 100)
-	y = 2 / x
-	plt.plot(x, y, color='red', linestyle='-')
+	fileName = 'r_epsilon_' + str(Settings.NUM_EPSILONS) + '.png'
+	plt.savefig(fileName, format='png', dpi=350)
 
-	plt.savefig('r_vs_epsilon.png', format='png', dpi=350)
+def plotAndSaveB_X(x, y):
+	global Settings
 
-def plotAndSaveB(x, y):
 	plt.clf()
 	plt.axhline(y=0, color='black', linewidth=0.5)
-	plt.axhline(y=getConvergingB(x, y), color='grey', linewidth=0.3, linestyle='--')
-	plt.plot(x, y, color='red', linestyle='-')
+	plt.axhline(y=getConvergingB(x, y), color='grey', linewidth=Settings.DOTTED_LINE_WIDTH, linestyle=Settings.DOTTED_LINE_STYLE)
+	plt.plot(x, y, color=Settings.GRAPH_COLOUR, linewidth=Settings.LINE_WIDTH, linestyle='-')
 
-	plt.axis([0, max(x), 1.2*min(y), 1.5*getConvergingB(x, y)])
 	plt.xlabel(r'$x$', fontsize=15)
 	plt.ylabel(r'$B$', fontsize=15)
+	plt.axis([0, max(x), 1.2*min(y), 1.5*getConvergingB(x, y)])
 
-	plt.savefig('b_vs_x.png', format='png', dpi=350)
+	fileName = 'b_x_' + str(Settings.EPSILON) + '.png'
+	plt.savefig(fileName, format='png', dpi=350)
 	
-def plotAndSaveBX(x, y):
+def plotAndSaveB_Epsilon(x, y):
+	global Settings
+
 	plt.clf()
 	plt.axhline(y=0, color='black', linewidth=0.5)
-	plt.plot(x, y, color='red', linestyle='', marker='o', markersize=3)
+	plt.plot(x, y, color=Settings.GRAPH_COLOUR, linestyle='', marker=Settings.MARKER_STYLE, markersize=Settings.MARKER_SIZE)
 
-	# plt.axis([0, 0.46, , 1.2*max(y)])
+	lower, upper = Settings.ANALYTIC_B_EPSILON_RANGE
+	x = np.linspace(lower, upper, 200)
+	y = 27 * (pi**2) * (2/3)**4 / (2 * x**3)
+	plt.plot(x, y, color=Settings.GRAPH_COLOUR, linewidth=Settings.LINE_WIDTH, linestyle='-')
+
+	plt.xticks([0.1*n for n in range(10)])
 	plt.xlabel(r'$\~{\epsilon}$', fontsize=15)
 	plt.ylabel(r'$\~{B}$', fontsize=15)
+	plt.axis([0, 0.44, -0.1*max(y), 1.1*max(y)])
 
-	# x = np.linspace(0.05, 0.38, 100)
-	# y = 27 * (pi**2) * (2/3)**4 / (2 * x**3)
-	# plt.plot(x, y, color='red', linestyle='-')
-
-	# x = np.linspace(0.05, 0.38, 100)
-	# y = 27 * (pi**2) * (1/3)**4 / (2 * x**3)
-	# plt.plot(x, y, color='black', linestyle='-')
-
-	plt.savefig('b_vs_epsilon.png', format='png', dpi=350)
+	fileName = 'b_epsilon_' + str(Settings.NUM_EPSILONS) + '.png'
+	plt.savefig(fileName, format='png', dpi=350)
 
 
 def solveForSingleEpsilon():
-	""" Solves the bubble equation to get phi0 and phi for a given epsilon.
-		Also generates and saves phi-rho and V-phi plots. """
+	""" Solves the bubble equation to get phi0 and phi for a given epsilon. Also
+		generates and saves phi-rho and V-phi plots. """
+
+	global Settings
 
 	# initialise varibles
-	epsilon = 0.3 # works in the range [0.094, 0.38]
-	rho = np.linspace(1e-9, 50, 10000)
+	rho = np.linspace(1e-9, 50, Settings.NUM_RHOS)
 
 	# solve ODE
-	phi0, phi, dPhi, B = getConvergingPhi(rho, epsilon)
+	phi0, phi, dPhi, B = getConvergingPhi(rho)
 
-	# print results
-	plotAndSavePotential(epsilon)
-	plotAndSavePhi(rho, phi, epsilon)
-	plotAndSaveB(rho, B)
+	# save results
+	plotAndSaveV_Phi()
+	plotAndSavePhi_Rho(rho, phi)
+	plotAndSaveB_X(rho, B)
 
 	print("-" * 30)
-	print("For epsilon = {0:f}, phi_initial = {1:f}".format(epsilon, phi0))
+	print("For epsilon = {0:f}, phi_initial = {1:f}".format(Settings.EPSILON, phi0))
 	print("(figures saved in {0:s})".format(os.getcwd()))
 	print("-" * 30)
 
+	print(Settings.EPSILON)
+
 def solveForEpsilonArray():
-	""" Solves the bubble equation for a given range of epsilon.
-		Also generates and saves an R-versus-epsilon plot. """
+	""" Solves the bubble equation for a given range of epsilon. Also generates
+		and saves an R-versus-epsilon plot. """
+
+	global Settings
 
 	# initialise variables
 	arrR = []
 	arrB = []
-	arrEpsilon = np.linspace(0.094, 0.38, 10)
-	rho = np.linspace(1e-9, 50, 1000)
+	arrEpsilon = np.linspace(0.094, 0.38, Settings.NUM_EPSILONS)
+	rho = np.linspace(1e-9, 50, Settings.NUM_RHOS)
 
 	# find and save the nucleation point for each epsilon
-	for epsilon in arrEpsilon:
-		phi0, phi, dPhi, B = getConvergingPhi(rho, epsilon)
+	for Settings.EPSILON in arrEpsilon:
+		phi0, phi, dPhi, B = getConvergingPhi(rho)
 
 		# Nucleation point if dPhi is max. Only look T the first half of phi to
 		# ignore computational errors, which normally appears in the later half.
@@ -238,17 +264,62 @@ def solveForEpsilonArray():
 		arrB.append(getConvergingB(rho, B))
 
 		# print progress because it is slow
-		print("{0:1.0f}%".format(100 * (epsilon-0.094)/(0.38-0.094)))
+		print("{0:1.0f}%".format(100 * (Settings.EPSILON-0.094)/(0.38-0.094)))
 
 	# plot R-epsilon and save as a file
-	plotAndSaveR(arrEpsilon, arrR)
-	plotAndSaveBX(arrEpsilon, arrB)
+	plotAndSaveR_Epsilon(arrEpsilon, arrR)
+	plotAndSaveB_Epsilon(arrEpsilon, arrB)
 
+
+class Settings:
+	""" A class containing calculation settings and formatting options. The
+		objects shown below are initialised to the default options.
+
+		To change settings, copy the objects into main() and re-assign new
+		settings.
+	"""
+
+	# calculation settings
+	EPSILON = 0.2 # works in the range [0.094, 0.380]
+	NUM_RHOS = 10000
+	NUM_EPSILONS = 13
+
+	# plot settings
+	GRAPH_COLOUR = 'black'
+
+	ENABLE_ANALYTIC_PLOT = True
+	ENABLE_NUMERICAL_PLOT = True
+
+	ANALYTIC_R_EPSILON_RANGE = [0.05, 0.38]
+	ANALYTIC_B_EPSILON_RANGE = [0.05, 0.38]
+
+	LINE_WIDTH = 1
+	DOTTED_LINE_WIDTH = 0.5
+	MARKER_SIZE = 3
+
+	LINE_STYLE = '-'
+	DOTTED_LINE_STYLE = ':'
+	MARKER_STYLE = 'o'
 
 def main():
+	global Settings
+
+	# settings for V-Rho and B-X plots:
+	Settings.GRAPH_COLOUR = 'red'
+	Settings.EPSILON = 0.2
+	Settings.NUM_RHOS = 10000
+
+	Settings.ENABLE_ANALYTIC_PLOT = True
+	Settings.ENABLE_NUMERICAL_PLOT = True
+
 	solveForSingleEpsilon()
+
+	# settings for R-Epsilon and B-Epsilon plots:
+	Settings.NUM_RHOS = 1000
+	
 	solveForEpsilonArray()
 
 if __name__ == "__main__":
+	plt.figure(figsize=(0.5*16, 0.5*10))
 	main()
 
