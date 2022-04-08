@@ -32,19 +32,18 @@ def dV_dPhi(phi):
 
 	return (phi**3 - phi + Settings.EPSILON) / 2
 
-def ddPhi(initialConditions, rho, potentialShift, dummy):
-	""" Returns phi'' in the range of rho. """
+def systemOfEq(y, rho, potentialShift, dummy):
+	""" Function representing the system of differential equations needed to be solved. It returns a vector representing the ODE's needed to be solved"""
 	global Settings
 
-	phi = initialConditions[0]
-	dPhi = initialConditions[1]
+	phi, dPhi, B = y
 	ddPhi = -(3/rho) * dPhi + dV_dPhi(phi)
 	dB = 2*(pi**2) * (rho**3) * ((1/2)*(dPhi**2) + (1/8)*(phi**2 - 1)**2 + (Settings.EPSILON/2)*(phi - 1) + potentialShift)
+	dydrho = [dPhi, ddPhi,dB]
 	
-	return dPhi, ddPhi, dB
+	return dydrho
 
-
-def getConvergingPhi(rho):
+def getConvergingPhi(rho): #!!!!!!!!
 	""" Determine initial phi that makes phi converge to a local maximum
 		in potential V using binary search and the shooting method """
 
@@ -77,7 +76,7 @@ def getConvergingPhi(rho):
 		print(findExtrema(V(rho), np.less))
 
 	# odeint returns [[phi0, dPhi0, B0], [phi1, dPhi1, B1], ...]
-	solution = odeint(ddPhi, [middlePhi0, 0, 0], rho, args=(potentialShift, 0))
+	solution = odeint(systemOfEq, [middlePhi0, 0, 0], rho, args=(potentialShift, 0))
 
 	# binary search for finding phi0
 	for i in range(100):
@@ -89,7 +88,7 @@ def getConvergingPhi(rho):
 			maxPhi0 = middlePhi0
 
 		middlePhi0 = (minPhi0 + maxPhi0) / 2
-		solution = odeint(ddPhi, [middlePhi0, 0, 0], rho, args=(potentialShift, 0))
+		solution = odeint(systemOfEq, [middlePhi0, 0, 0], rho, args=(potentialShift, 0))
 
 	# return phi0, phi, dPhi and B
 	return middlePhi0, solution[:, 0], solution[:, 1], solution[:, 2]
@@ -117,7 +116,6 @@ def getConvergingB(rho, B):
 
 	# find the index of lowest SSE and return B at that point
 	return B[np.argmin(arrSSE) + int(windowLength/2)]
-
 
 def plotAndSaveV_Phi():
 	global Settings
@@ -215,8 +213,7 @@ def plotAndSaveB_Epsilon(x, y):
 	plt.axis([0, 0.44, -0.1*max(y), 1.1*max(y)])
 
 	fileName = 'b_epsilon_' + str(Settings.NUM_EPSILONS) + '.png'
-	plt.savefig(fileName, format='png', dpi=350)
-
+	plt.savefig(fileName, format='png', dpi=350) 
 
 def solveForSingleEpsilon():
 	""" Solves the bubble equation to get phi0 and phi for a given epsilon. Also
@@ -318,9 +315,9 @@ def main():
 
 	# settings for V-Rho and B-X plots:
 	Settings.GRAPH_COLOUR = 'red'
-	Settings.EPSILON = 0.13
+	Settings.EPSILON = 0.3
 
-	# solveForSingleEpsilon()
+	solveForSingleEpsilon()
 
 	# settings for R-Epsilon and B-Epsilon plots:
 	Settings.NUM_RHOS = 10000
