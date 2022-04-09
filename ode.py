@@ -164,7 +164,7 @@ def plotAndSaveR_Epsilon(x, y):
 		plt.plot(x, y, color=Settings.GRAPH_COLOUR, linestyle='', marker=Settings.MARKER_STYLE, markersize=Settings.MARKER_SIZE)
 
 	if Settings.ENABLE_ANALYTIC_PLOT:
-		lower, upper = Settings.ANALYTIC_R_EPSILON_RANGE
+		lower, upper = Settings.ANALYTIC_EPSILON_RANGE
 		x = np.linspace(lower, upper, 200)
 		y = 2 / x
 		plt.plot(x, y, color=Settings.GRAPH_COLOUR, linewidth=Settings.LINE_WIDTH, linestyle='-')
@@ -177,7 +177,7 @@ def plotAndSaveR_Epsilon(x, y):
 	fileName = 'r_epsilon_' + str(Settings.NUM_EPSILONS) + '.png'
 	plt.savefig(fileName, format='png', dpi=350)
 
-def plotAndSaveB_X(x, y):
+def plotAndSaveB_Rho(x, y):
 	global Settings
 
 	plt.clf()
@@ -202,7 +202,7 @@ def plotAndSaveB_Epsilon(x, y):
 		plt.plot(x, y, color=Settings.GRAPH_COLOUR, linestyle='', marker=Settings.MARKER_STYLE, markersize=Settings.MARKER_SIZE)
 
 	if Settings.ENABLE_ANALYTIC_PLOT:
-		lower, upper = Settings.ANALYTIC_B_EPSILON_RANGE
+		lower, upper = Settings.ANALYTIC_EPSILON_RANGE
 		x = np.linspace(lower, upper, 200)
 		y = 27 * (pi**2) * (2/3)**4 / (2 * x**3)
 		plt.plot(x, y, color=Settings.GRAPH_COLOUR, linewidth=Settings.LINE_WIDTH, linestyle='-')
@@ -230,7 +230,7 @@ def solveForSingleEpsilon():
 	# save results
 	plotAndSaveV_Phi()
 	plotAndSavePhi_Rho(rho, phi)
-	plotAndSaveB_X(rho, B)
+	plotAndSaveB_Rho(rho, B)
 
 	print("[ode.py] Phi_initial = {:f} for epsilon = {:f}".format(phi0, Settings.EPSILON))
 	print("[ode.py] (V-phi, phi-rho and B-x saved in {0:s})".format(os.getcwd()))
@@ -267,7 +267,7 @@ def solveForEpsilonArray():
 			print("{0:1.0f}%".format(100 * (Settings.EPSILON-0.094)/(0.38-0.094)))
 
 			if Settings.ENABLE_DEBUGGING:
-				plotAndSaveB_X(rho, B)
+				plotAndSaveB_Rho(rho, B)
 
 	# plot R-epsilon and save as a file
 	plotAndSaveR_Epsilon(arrEpsilon, arrR)
@@ -295,8 +295,7 @@ class Settings:
 	ENABLE_ANALYTIC_PLOT = True
 	ENABLE_NUMERICAL_PLOT = True
 
-	ANALYTIC_R_EPSILON_RANGE = [0.05, 0.38]
-	ANALYTIC_B_EPSILON_RANGE = [0.05, 0.38]
+	ANALYTIC_EPSILON_RANGE = [0.05, 0.38]
 
 	LINE_WIDTH = 1
 	DOTTED_LINE_WIDTH = 0.5
