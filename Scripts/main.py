@@ -3,7 +3,7 @@ from ode import *
 def main():
 	""" """
 	# settings for V-Rho and B-X plots:
-	Settings.GRAPH_COLOUR = 'blue'
+	Settings.GRAPH_COLOUR = 'red'
 	Settings.EPSILON = 0.2
 
 	solveForSingleEpsilon()
