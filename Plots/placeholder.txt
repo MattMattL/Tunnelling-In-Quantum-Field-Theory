@@ -1,0 +1,3 @@
+This file is to make the Plots folder show up on git.
+
+Add "shared_" in front of a .png file to stage.
