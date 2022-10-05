@@ -4,14 +4,10 @@ def main():
 	""" """
 	# settings for V-Rho and B-X plots:
 	Settings.GRAPH_COLOUR = 'red'
-	Settings.EPSILON = 0.2
 
 	solveForSingleEpsilon()
 
 	# settings for R-Epsilon and B-Epsilon plots:
-	Settings.NUM_RHOS = 10000
-	Settings.NUM_EPSILONS = 10
-
 	Settings.ENABLE_ANALYTIC_PLOT = True
 	Settings.ENABLE_NUMERICAL_PLOT = True
 	

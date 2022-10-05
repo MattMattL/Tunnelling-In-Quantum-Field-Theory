@@ -8,8 +8,8 @@ class Settings:
 
 	# calculation settings
 	EPSILON = 0.2 # works in the range [0.094, 0.380]
-	NUM_RHOS = 10000
-	NUM_EPSILONS = 30
+	NUM_RHOS = 1000
+	NUM_EPSILONS = 10
 
 	# plot settings
 	GRAPH_COLOUR = 'black'
